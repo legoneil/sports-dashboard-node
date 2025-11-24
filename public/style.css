@@ -37,3 +37,63 @@ h1 {
   margin-top: 5px;
   text-align: center;
 }
+/* -------------------------
+   MOBILE ONLY
+-------------------------- */
+.mobile-layout {
+  display: none;
+}
+
+.mobile-title {
+  text-align: center;
+  padding: 15px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+#games-mobile {
+  width: 94%;
+  margin: auto;
+}
+
+.mobile-game {
+  background: #1c1c1e;
+  padding: 18px;
+  border-radius: 18px;
+  margin: 12px 0;
+}
+
+.mobile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.mobile-row img {
+  width: 32px;
+  height: 32px;
+}
+
+.mobile-row .team-name {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.mobile-row .team-score {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.mobile-status {
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.7;
+  margin-top: 8px;
+}
+
+/* Show mobile layout on small screens */
+@media (max-width: 700px) {
+  #games { display: none; }        /* hide desktop */
+  .mobile-layout { display: block; }
+}
