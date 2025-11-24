@@ -50,52 +50,80 @@ async function loadSection(api, elementId) {
       return;
     }
 
-    container.innerHTML = data.events.map(event => {
-  const c = event.competitions[0].competitors;
+    container.innerHTML = data.events
+      .map(event => {
+        const c = event.competitions[0].competitors;
 
-  // Determine winner/loser for color coding
-  const score0 = parseInt(c[0].score || 0);
-  const score1 = parseInt(c[1].score || 0);
+        // Scores
+        const score0 = parseInt(c[0].score || 0);
+        const score1 = parseInt(c[1].score || 0);
 
-  let team0Color = "black"; // default
-  let team1Color = "black";
+        // Color logic
+        let team0Color = "black";
+        let team1Color = "black";
 
-  if (event.status.type.state === "post" || event.status.type.state === "in") {
-    if (score0 > score1) {
-      team0Color = "green";
-      team1Color = "red";
-    } else if (score1 > score0) {
-      team1Color = "green";
-      team0Color = "red";
-    }
-  }
+        if (event.status.type.state === "post" || event.status.type.state === "in") {
+          if (score0 > score1) {
+            team0Color = "green";
+            team1Color = "red";
+          } else if (score1 > score0) {
+            team1Color = "green";
+            team0Color = "red";
+          }
+        }
 
-  // Show current quarter/period or status
-  let quarterText = "";
-  if (event.status && event.status.type) {
-    if (event.status.type.state === "pre") {
-      quarterText = "Not started";
-    } else if (event.status.type.state === "in") {
-      quarterText = event.status.type.shortDetail; // e.g., "Q2 5:32"
-    } else if (event.status.type.state === "post") {
-      quarterText = "Final";
-    }
-  }
+        // Quarter / game state
+        let quarterText = "";
+        if (event.status && event.status.type) {
+          if (event.status.type.state === "pre") {
+            quarterText = "Not started";
+          } else if (event.status.type.state === "in") {
+            quarterText = event.status.type.shortDetail; // "Q2 5:32"
+          } else if (event.status.type.state === "post") {
+            quarterText = "Final";
+          }
+        }
 
-  return `
-    <div class="game">
-      <div class="team">
-        <img src="${c[0].team.logo}" alt="${c[0].team.displayName}" width="30" height="30">
-        <span style="color:${team0Color}">${c[0].team.displayName} ${c[0].score}</span>
-      </div>
-      <div class="team">
-        <img src="${c[1].team.logo}" alt="${c[1].team.displayName}" width="30" height="30">
-        <span style="color:${team1Color}">${c[1].team.displayName} ${c[1].score}</span>
-      </div>
-      <div class="quarter">${quarterText}</div>
-    </div>
-  `;
-}).join("");
+        // ➕ NEW: Possession + Down & Distance
+        let possession = "";
+        let downAndDist = "";
+
+        const situation = event.competitions[0].situation;
+        if (situation) {
+          if (situation.possession) {
+            possession = situation.possession.toString();
+          }
+          if (situation.down && situation.distance) {
+            downAndDist = `${situation.down} & ${situation.distance}`;
+          }
+        }
+
+        return `
+          <div class="game">
+            <div class="team">
+              <img src="${c[0].team.logo}" width="30" height="30">
+              <span style="color:${team0Color}">
+                ${c[0].team.displayName} ${c[0].score}
+                ${possession === c[0].id ? "🏈" : ""}
+              </span>
+            </div>
+
+            <div class="team">
+              <img src="${c[1].team.logo}" width="30" height="30">
+              <span style="color:${team1Color}">
+                ${c[1].team.displayName} ${c[1].score}
+                ${possession === c[1].id ? "🏈" : ""}
+              </span>
+            </div>
+
+            <div class="quarter">
+              ${quarterText}
+              ${downAndDist ? ` • ${downAndDist}` : ""}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
 
   } catch {
     container.innerHTML = "Error loading scores.";
