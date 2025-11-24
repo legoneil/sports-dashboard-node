@@ -78,13 +78,13 @@ async function loadSection(api, elementId) {
           if (event.status.type.state === "pre") {
             quarterText = "Not started";
           } else if (event.status.type.state === "in") {
-            quarterText = event.status.type.shortDetail; // "Q2 5:32"
+            quarterText = event.status.type.shortDetail;
           } else if (event.status.type.state === "post") {
             quarterText = "Final";
           }
         }
 
-        // ➕ NEW: Possession + Down & Distance
+        // ➕ Possession + Down & Distance
         let possession = "";
         let downAndDist = "";
 
@@ -98,6 +98,7 @@ async function loadSection(api, elementId) {
           }
         }
 
+        // FINAL TEMPLATE (with centered down marker)
         return `
           <div class="game">
             <div class="team">
@@ -106,6 +107,10 @@ async function loadSection(api, elementId) {
                 ${c[0].team.displayName} ${c[0].score}
                 ${possession === c[0].id ? "🏈" : ""}
               </span>
+            </div>
+
+            <div class="down-marker">
+              ${downAndDist ? `${downAndDist}` : ""}
             </div>
 
             <div class="team">
@@ -118,7 +123,6 @@ async function loadSection(api, elementId) {
 
             <div class="quarter">
               ${quarterText}
-              ${downAndDist ? ` • ${downAndDist}` : ""}
             </div>
           </div>
         `;
@@ -129,6 +133,7 @@ async function loadSection(api, elementId) {
     container.innerHTML = "Error loading scores.";
   }
 }
+
 
 loadScores();
 setInterval(loadScores, 10000);
