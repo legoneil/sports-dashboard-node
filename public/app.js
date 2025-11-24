@@ -85,18 +85,32 @@ async function loadSection(api, elementId) {
         }
 
         // ➕ Possession + Down & Distance
-        let possession = "";
-        let downAndDist = "";
+        // ➕ Possession + Down & Distance (fixed for -1)
+let possession = "";
+let downAndDist = "Down Pending";
 
-        const situation = event.competitions[0].situation;
-        if (situation) {
-          if (situation.possession) {
-            possession = situation.possession.toString();
-          }
-          if (situation.down && situation.distance) {
-            downAndDist = `${situation.down} & ${situation.distance}`;
-          }
-        }
+const situation = event.competitions[0].situation;
+
+if (situation) {
+  // possession
+  if (situation.possession) {
+    possession = situation.possession.toString();
+  }
+
+  // down & distance
+  const down = situation.down;
+  const dist = situation.distance;
+
+  if (down >= 1 && down <= 4) {
+    if (dist && dist > 0) {
+      downAndDist = `${down} & ${dist}`;
+    } else {
+      downAndDist = `${down} & Pending`;
+    }
+  } else {
+    downAndDist = "Down Pending";
+  }
+}
 
         // FINAL TEMPLATE (with centered down marker)
         return `
