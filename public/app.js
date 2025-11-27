@@ -1,10 +1,10 @@
 async function loadScores() {
-  loadSection("/api/nfl", "nfl");
-  loadSection("/api/nba", "nba");
-  loadSection("/api/cfb", "cfb");
+  loadSection("/api/nfl", "nfl", "nfl");
+  loadSection("/api/nba", "nba", "nba");
+  loadSection("/api/cfb", "cfb", "cfb");
   renderMobileGames(games);
-
 }
+
 function renderMobileGames(games) {
   const container = document.getElementById("games-mobile");
   container.innerHTML = "";
@@ -36,8 +36,7 @@ function renderMobileGames(games) {
   });
 }
 
-
-async function loadSection(api, elementId) {
+async function loadSection(api, elementId, sport) {
   const container = document.getElementById(elementId);
   container.innerHTML = "Loading...";
 
@@ -50,104 +49,91 @@ async function loadSection(api, elementId) {
       return;
     }
 
-    container.innerHTML = data.events
-      .map(event => {
-        const c = event.competitions[0].competitors;
+    const todayStr = new Date().toISOString().split("T")[0];
+    let html = "";
 
-        // Scores
-        const score0 = parseInt(c[0].score || 0);
-        const score1 = parseInt(c[1].score || 0);
+    data.events.forEach(event => {
+      const competition = event.competitions?.[0];
+      if (!competition) return;
 
-        // Color logic
-        let team0Color = "black";
-        let team1Color = "black";
+      // Only show today's games
+      const gameDate = event.date.split("T")[0];
+      if (gameDate !== todayStr) return;
 
-        if (event.status.type.state === "post" || event.status.type.state === "in") {
-          if (score0 > score1) {
-            team0Color = "green";
-            team1Color = "red";
-          } else if (score1 > score0) {
-            team1Color = "green";
-            team0Color = "red";
-          }
+      const c = competition.competitors;
+      const team0 = c[0];
+      const team1 = c[1];
+
+      const score0 = parseInt(team0.score || 0);
+      const score1 = parseInt(team1.score || 0);
+
+      // Score colors
+      let team0Color = "black";
+      let team1Color = "black";
+      const state = event.status?.type?.state;
+
+      if (state === "post" || state === "in") {
+        if (score0 > score1) {
+          team0Color = "green";
+          team1Color = "red";
+        } else if (score1 > score0) {
+          team1Color = "green";
+          team0Color = "red";
+        }
+      }
+
+      // Status text (clean)
+      let statusText = "";
+      if (state === "pre") statusText = "Not started";
+      else if (state === "post") statusText = "Final";
+      else if (state === "in") statusText = event.status?.type?.shortDetail || "Live";
+
+      // ⚠️ FOOTBALL DATA ONLY FOR NFL
+      let team0Ball = false;
+      let team1Ball = false;
+      let downText = "";
+
+      if (sport === "nfl" && state === "in") {
+        const sit = competition.situation;
+
+        if (sit?.possession) {
+          team0Ball = sit.possession == team0.id;
+          team1Ball = sit.possession == team1.id;
         }
 
-        // Quarter / game state
-        let quarterText = "";
-        if (event.status && event.status.type) {
-          if (event.status.type.state === "pre") {
-            quarterText = "Not started";
-          } else if (event.status.type.state === "in") {
-            quarterText = event.status.type.shortDetail;
-          } else if (event.status.type.state === "post") {
-            quarterText = "Final";
-          }
+        const d = sit?.down;
+        const dist = sit?.distance;
+
+        if (d >= 1 && d <= 4) {
+          downText = dist > 0 ? `${d} & ${dist}` : `${d} & Pending`;
+        } else {
+          downText = "Down Pending";
         }
+      }
 
-        // ➕ Possession + Down & Distance
-        // ➕ Possession + Down & Distance (fixed for -1)
-let possession = "";
-let downAndDist = "Down Pending";
-
-const situation = event.competitions[0].situation;
-
-if (situation) {
-  // possession
-  if (situation.possession) {
-    possession = situation.possession.toString();
-  }
-
-  // down & distance
-  const down = situation.down;
-  const dist = situation.distance;
-
-  if (down >= 1 && down <= 4) {
-    if (dist && dist > 0) {
-      downAndDist = `${down} & ${dist}`;
-    } else {
-      downAndDist = `${down} & Pending`;
-    }
-  } else {
-    downAndDist = "Down Pending";
-  }
-}
-
-        // FINAL TEMPLATE (with centered down marker)
-        return `
-          <div class="game">
-            <div class="team">
-              <img src="${c[0].team.logo}" width="30" height="30">
-              <span style="color:${team0Color}">
-                ${c[0].team.displayName} ${c[0].score}
-                ${possession === c[0].id ? "🏈" : ""}
-              </span>
-            </div>
-
-            <div class="down-marker">
-              ${downAndDist ? `${downAndDist}` : ""}
-            </div>
-
-            <div class="team">
-              <img src="${c[1].team.logo}" width="30" height="30">
-              <span style="color:${team1Color}">
-                ${c[1].team.displayName} ${c[1].score}
-                ${possession === c[1].id ? "🏈" : ""}
-              </span>
-            </div>
-
-            <div class="quarter">
-              ${quarterText}
-            </div>
+      html += `
+        <div class="game">
+          <div class="team">
+            <img src="${team0.team.logo}" width="30" height="30">
+            <span style="color:${team0Color}">
+              ${team0Ball ? "🏈 " : ""}${team0.team.displayName} ${team0.score}
+            </span>
           </div>
-        `;
-      })
-      .join("");
 
-  } catch {
-    container.innerHTML = "Error loading scores.";
-  }
-}
+          <div class="down-marker">
+            ${sport === "nfl" && state === "in" ? downText : ""}
+          </div>
 
+          <div class="team">
+            <img src="${team1.team.logo}" width="30" height="30">
+            <span style="color:${team1Color}">
+              ${team1Ball ? "🏈 " : ""}${team1.team.displayName} ${team1.score}
+            </span>
+          </div>
 
-loadScores();
-setInterval(loadScores, 10000);
+          <div class="quarter">${statusText}</div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html.tr
